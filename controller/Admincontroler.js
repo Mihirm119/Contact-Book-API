@@ -13,6 +13,11 @@ exports.SECURE = async function (req, res, next) {
 
         if (!tokenndata) throw new Error("USER is not valid");
 
+        req.admin = tokenndata._id
+
+        next()
+
+
     } catch (error) {
         res.status(404).json({
             status: "Fail",
@@ -23,17 +28,18 @@ exports.SECURE = async function (req, res, next) {
 
 exports.SIGNUP = async function (req, res, next) {
     try {
-        let { email, password } = req.body;
+        let { email, password  , role} = req.body;
         password = await bycrypt.hash(password, 8);
 
         let usercreate = await ADMIN.create({
             email,
-            password
+            password,
+            role,
         })
 
         res.status(201).json({
             status: "Success",
-            message: "User Signup Successfully",
+            message: "Admin Signup Successfully",
             data: usercreate,
         })
 
@@ -49,19 +55,18 @@ exports.SIGNUP = async function (req, res, next) {
 exports.LOGIN = async function (req, res, next) {
     try {
         let { email, password } = req.body;
-        const userfind = await ADMIN.findOne({ email });
 
+        const userfind = await ADMIN.findOne({ email });
         if (!userfind) throw new Error('user not found')
 
         let newpassword = await bycrypt.compare(password, userfind.password)
-
         if (!newpassword) throw new Error('password is not valid')
 
         const token = jwt.sign({ id: userfind._id }, "TEST")
 
         res.status(201).json({
             status: "Success",
-            message: "User login Successfully",
+            message: "Admin login Successfully",
             Token: token,
         })
 
@@ -75,7 +80,7 @@ exports.LOGIN = async function (req, res, next) {
 
 exports.READ = async function (req, res, next) {
     try {
-        const DATA = await ADMIN.find();
+        const DATA = await ADMIN.findOne({ _id: req.admin });
 
         res.status(201).json({
             status: "Success",
@@ -92,53 +97,65 @@ exports.READ = async function (req, res, next) {
 }
 
 
-// exports.UPDATE = async function (req, res, next) {
-//     try {
-//         const {newemail, newpassword } = req.body;
-//         Password = await bycrypt.hash(newpassword, 8);
+exports.UPDATE = async function (req, res, next) {
+    try {
+        const { email, password } = req.body;
 
-//         if (!newemail) throw new Error("PLease Enter newemail");
-//         if (!newpassword) throw new Error("PLease Enter newpassword");
+        if (!email) throw new Error("PLease Enter newemail");
+        if (!password) throw new Error("PLease Enter newpassword");
+
+        const idcheck = await ADMIN.findById(req.params.id)
+        if (!idcheck) throw new Error("Id is invalid");
+
+        if (idcheck._id.toString() !==  req.admin.toString() ) throw new Error("UnauthorizedError: ID does not match.");
+
+        const alreadexist = await ADMIN.findOne({email})
+        if(alreadexist) throw new Error("Email id is Already Exist");
+
+        // Password = await bycrypt.hash(password, 8);
+
+        const DATA = await ADMIN.findByIdAndUpdate(req.params.id, {
+            email,
+            password
+        }, {
+            new: true // This should be inside the options object
+        });
+
+        res.status(201).json({
+            status: "Success",
+            message: "Data Update Successfully",
+            Updatedata: DATA,
+        })
+
+    } catch (error) {
+        res.status(404).json({
+            status: "Fail",
+            message: error.message,
+        })
+    }
+}
 
 
-//         const DATA = await ADMIN.findByIdAndUpdate(req.params.id, {
-//             email: newemail,
-//             password: Password
-//         }, {
-//             new: true // This should be inside the options object
-//         });
 
-//         res.status(201).json({
-//             status: "Success",
-//             message: "Data Update Successfully",
-//             data: DATA,
-//         })
+exports.DELETE = async function (req, res, next) {
+    try {
 
-//     } catch (error) {
-//         res.status(404).json({
-//             status: "Fail",
-//             message: error.message,
-//         })
-//     }
-// }
+        const idcheck = await ADMIN.findById(req.params.id)
+        if(!idcheck) throw new Error("Id is not exist");
+        
 
+        // const DATA = await ADMIN.findByIdAndDelete(req.params.id);
 
+        res.status(201).json({
+            status: "Success",
+            message: "Data Delete Successfully",
+        })
 
-// exports.DELETE = async function (req, res, next) {
-//     try {
-
-//         const DATA = await ADMIN.findByIdAndDelete(req.params.id);
-
-//         res.status(201).json({
-//             status: "Success",
-//             message: "Data Delete Successfully",
-//         })
-
-//     } catch (error) {
-//         res.status(404).json({
-//             status: "Fail",
-//             message: error.message,
-//         })
-//     }
-// }
+    } catch (error) {
+        res.status(404).json({
+            status: "Fail",
+            message: error.message,
+        })
+    }
+}
 

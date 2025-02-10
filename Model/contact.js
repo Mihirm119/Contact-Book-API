@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const USER = new Schema({
     name:{
         type:String,
-        require:[true,"Email Is Required , PLease Enter A Email"],
+        required:[true,"Email Is Required , PLease Enter A Email"],
         trim:true,
         unique:true
     },
@@ -22,6 +22,11 @@ const USER = new Schema({
         type:String,
         require:[true,"Password Is Required , PLease Enter A Password"],
         trim:true,
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     },
 }) 
 

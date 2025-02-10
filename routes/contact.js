@@ -2,9 +2,9 @@ var express = require('express');
 var router = express.Router();
 const controller = require('../controller/contactcontroler');
 
-router.get('/read',controller.SECURE,controller.READ)
-
 router.post('/create',controller.SECURE,controller.CREATE);
+
+router.get('/read',controller.SECURE,controller.READ)
 
 router.put('/update/:id',controller.SECURE,controller.UPDATE);
 

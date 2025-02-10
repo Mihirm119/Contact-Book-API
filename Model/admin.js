@@ -13,6 +13,10 @@ const USER = new Schema({
         require:[true,"Password Is Required , PLease Enter A Password"],
         trim:true,
     },
+    role:{
+        type:String,
+        default:"Admin",
+    }
 }) 
 
 const ADMIN = mongoose.model("admin", USER);

@@ -1,27 +1,64 @@
 var NEWUSER = require("../Model/contact");
 let USERS = require("../Model/user");
+let ADMIN = require("../Model/admin");
 const jwt = require('jsonwebtoken');
+
+// exports.SECURE = async function (req, res, next) {
+//     try {
+
+//         const token = req.headers.authorization;
+//         if (!token) throw new Error("PLease Attche Token");
+
+//         const isvalidtoken = jwt.verify(token, "USER");
+//         const tokenndata = await USERS.findById(isvalidtoken.id);
+
+//         if (!tokenndata) throw new Error("USER is not valid");
+
+//         req.user = tokenndata._id
+
+//         next()
+
+//     } catch (error) {
+//         res.status(404).json({
+//             status: "Fail",
+//             message: error.message,
+//         })
+//     }
+// }
 
 exports.SECURE = async function (req, res, next) {
     try {
-
         const token = req.headers.authorization;
-        if (!token) throw new Error("PLease Attche Token");
+        if (!token) throw new Error("Please attach a token");
 
-        const isvalidtoken = jwt.verify(token, "USER");
-        const tokenndata = await USERS.findById(isvalidtoken.id);
+        let isvalidtoken, userData;
 
-        if (!tokenndata) throw new Error("USER is not valid");
-        
-        next()
+        try {
+            isvalidtoken = jwt.verify(token, "USER");
+            userData = await USERS.findById(isvalidtoken.id);
+        } catch (err) {
+            try {
 
+                isvalidtoken = jwt.verify(token, "TEST");
+                userData = await ADMIN.findById(isvalidtoken.id);
+            } catch (adminErr) {
+                throw new Error("Invalid token: Authentication failed");
+            }
+        }
+
+        if (!userData) throw new Error("User/Admin is not valid");
+
+        req.user = userData._id;
+        req.role = userData.role || "user";
+
+        next();
     } catch (error) {
-        res.status(404).json({
+        res.status(401).json({
             status: "Fail",
             message: error.message,
-        })
+        });
     }
-}
+};
 
 exports.CREATE = async function (req, res, next) {
     try {
@@ -31,7 +68,8 @@ exports.CREATE = async function (req, res, next) {
             name,
             phone,
             email,
-            address
+            address,
+            userId: req.user,
         })
 
         res.status(201).json({
@@ -50,20 +88,38 @@ exports.CREATE = async function (req, res, next) {
 
 
 exports.READ = async function (req, res, next) {
-    let DATA;
+
     try {
-        if (req.query.search) {
-            DATA = await NEWUSER.find({
-                $or: [
-                    { name: { $regex: req.query.search, $options: 'i' } },
-                    { phone: { $regex: req.query.search, $options: 'i' } },
-                    { email: { $regex: req.query.search, $options: 'i' } },
-                    { address: { $regex: req.query.search, $options: 'i' } },
-                ]
-            });
-        } else {
-            // No search query, fetch all data
-            DATA = await NEWUSER.find();
+        let DATA;
+        if (req.role == 'User') {
+            if (req.query.search) {
+                DATA = await NEWUSER.find({
+                    userId: req.user,
+                    $or: [
+                        { name: { $regex: req.query.search, $options: 'i' } },
+                        { phone: { $regex: req.query.search, $options: 'i' } },
+                        { email: { $regex: req.query.search, $options: 'i' } },
+                        { address: { $regex: req.query.search, $options: 'i' } },
+                    ]
+                });
+            } else {
+                DATA = await NEWUSER.find({ userId: req.user })
+            }
+        }
+
+        else if (req.role == 'Admin') {
+            if (req.query.search) {
+                DATA = await NEWUSER.find({
+                    $or: [
+                        { name: { $regex: req.query.search, $options: 'i' } },
+                        { phone: { $regex: req.query.search, $options: 'i' } },
+                        { email: { $regex: req.query.search, $options: 'i' } },
+                        { address: { $regex: req.query.search, $options: 'i' } },
+                    ]
+                });
+            } else {
+                DATA = await NEWUSER.find().populate('userId')
+            }
         }
 
         res.status(201).json({
@@ -84,17 +140,17 @@ exports.READ = async function (req, res, next) {
 exports.UPDATE = async function (req, res, next) {
     try {
 
-        const { name, phone, email, address } = req.body;
+        const {name,phone,email,address} = req.body;
+        if (!name && !phone && !email && !address) throw new Error("Please enter at least one field if you want to update.");
 
-        const DATA = await NEWUSER.findByIdAndUpdate(req.params.id, {
-            name: name,
-            phone: phone,
-            email: email,
-            address: address
-        }, {
+        const checkid = await NEWUSER.findById(req.params.id)
+        if (!checkid) throw new Error("Id not found");
+        
+        if (req.user.toString() !== checkid.userId.toString()) throw new Error("UnauthorizedError: ID does not match");
+
+        const DATA = await NEWUSER.findByIdAndUpdate(req.params.id, req.body, {
             new: true
         });
-
 
         res.status(201).json({
             status: "Success",
@@ -115,11 +171,17 @@ exports.UPDATE = async function (req, res, next) {
 exports.DELETE = async function (req, res, next) {
     try {
 
-        const DATA = await NEWUSER.findByIdAndDelete(req.params.id);
+        const idcheck = await NEWUSER.findById(req.params.id);
+        if(!idcheck) throw new Error("Id is not valid");
+
+        if(idcheck.userId.toString()  !== req.user.toString()) throw new Error("UnauthorizedError: ID does not match");
+
+        const Deltecontact = await NEWUSER.findByIdAndDelete(req.params.id)
 
         res.status(201).json({
             status: "Success",
             message: "Data Delete Successfully",
+            DeltedData:Deltecontact,
         })
 
     } catch (error) {
