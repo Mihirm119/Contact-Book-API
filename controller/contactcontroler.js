@@ -166,8 +166,6 @@ exports.UPDATE = async function (req, res, next) {
     }
 }
 
-
-
 exports.DELETE = async function (req, res, next) {
     try {
 

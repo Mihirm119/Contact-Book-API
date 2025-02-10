@@ -38,11 +38,11 @@ exports.SIGNUP = async function (req, res, next) {
         password = await bycrypt.hash(password, 8);
 
         let usercreate = await NEWUSER.create({
-                email,
-                password,
-                profile:  req.file?.filename,
-                role
-            })
+            email,
+            password,
+            profile: req.file?.filename,
+            role
+        })
 
         res.status(201).json({
             status: "Success",
@@ -86,20 +86,8 @@ exports.LOGIN = async function (req, res, next) {
 }
 
 exports.READ = async function (req, res, next) {
-    let DATA;
     try {
-        if (req.query.search) {
-            DATA = await NEWUSER.find({
-                $or: [
-                    { firstname: { $regex: req.query.search, $options: 'i' } },
-                    { lastname: { $regex: req.query.search, $options: 'i' } },
-                    { email: { $regex: req.query.search, $options: 'i' } },
-                ]
-            });
-        } else {
-            // No search query, fetch all data
-            DATA = await NEWUSER.find();
-        }
+        let DATA = await NEWUSER.find({ _id: req.user });
 
         res.status(201).json({
             status: "Success",

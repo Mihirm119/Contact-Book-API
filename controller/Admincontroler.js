@@ -28,7 +28,7 @@ exports.SECURE = async function (req, res, next) {
 
 exports.SIGNUP = async function (req, res, next) {
     try {
-        let { email, password  , role} = req.body;
+        let { email, password, role } = req.body;
         password = await bycrypt.hash(password, 8);
 
         let usercreate = await ADMIN.create({
@@ -107,10 +107,10 @@ exports.UPDATE = async function (req, res, next) {
         const idcheck = await ADMIN.findById(req.params.id)
         if (!idcheck) throw new Error("Id is invalid");
 
-        if (idcheck._id.toString() !==  req.admin.toString() ) throw new Error("UnauthorizedError: ID does not match.");
+        if (idcheck._id.toString() !== req.admin.toString()) throw new Error("UnauthorizedError: ID does not match.");
 
-        const alreadexist = await ADMIN.findOne({email})
-        if(alreadexist) throw new Error("Email id is Already Exist");
+        const alreadexist = await ADMIN.findOne({ email })
+        if (alreadexist) throw new Error("Email id is Already Exist");
 
         // Password = await bycrypt.hash(password, 8);
 
@@ -141,14 +141,16 @@ exports.DELETE = async function (req, res, next) {
     try {
 
         const idcheck = await ADMIN.findById(req.params.id)
-        if(!idcheck) throw new Error("Id is not exist");
-        
+        if (!idcheck) throw new Error("Id is not exist");
 
-        // const DATA = await ADMIN.findByIdAndDelete(req.params.id);
+        if (idcheck._id.toString() !== req.admin.toString()) throw new Error("UnauthorizedError: ID does not match.");
+
+        let Delete = await ADMIN.findByIdAndDelete(req.params.id)
 
         res.status(201).json({
             status: "Success",
             message: "Data Delete Successfully",
+            DeleteData: Delete,
         })
 
     } catch (error) {
