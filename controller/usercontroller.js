@@ -30,24 +30,6 @@ exports.SECURE = async function (req, res, next) {
     }
 }
 
-exports.MULTER = async function (req, res, next) {
-    try {
-
-
-
-        next()
-
-    } catch (error) {
-        res.status(404).json({
-            status: "Fail",
-            message: error.message,
-        })
-    }
-}
-
-
-
-
 exports.SIGNUP = async function (req, res, next) {
     try {
         // console.log(req.file)
